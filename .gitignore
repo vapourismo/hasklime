@@ -1,3 +1,4 @@
 dist/
 dist-newstyle/
+__pycache__/
 *.so

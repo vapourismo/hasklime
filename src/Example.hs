@@ -1,4 +1,4 @@
-module HaskLime.Example where
+module Example (haskLimeActivate) where
 
 import HaskLime.C
 import HaskLime.Plugin

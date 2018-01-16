@@ -7,14 +7,20 @@ maintainer:         ole@vprsm.de
 build-type:         Simple
 cabal-version:      >= 2
 
-foreign-library hasklime-example
-  type:             native-shared
+library
   default-language: Haskell2010
   ghc-options:      -Wall -Wno-unused-do-bind -Wno-name-shadowing
   build-depends:    base, aeson, bytestring
-  hs-source-dirs:   src
-  other-modules:    HaskLime.Example
-                    HaskLime.Thread
+  hs-source-dirs:   lib
+  exposed-modules:  HaskLime.Plugin
                     HaskLime.C
-                    HaskLime.Plugin
+  other-modules:    HaskLime.Thread
+
+foreign-library hasklime-example
+  type:             native-shared
+  default-language: Haskell2010
+  ghc-options:      -Wall -Wno-name-shadowing
+  build-depends:    base, hasklime
+  hs-source-dirs:   src
+  other-modules:    Example
   c-sources:        cbits/rts.c
