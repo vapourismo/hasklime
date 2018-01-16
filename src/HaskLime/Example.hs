@@ -1,46 +1,21 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module HaskLime.Example where
 
-import qualified Data.ByteString as ByteString
+import HaskLime.C
+import HaskLime.Plugin
 
-import           Foreign.C
-import           Foreign.Ptr
+foreign export ccall "haskLimeActivate"
+    haskLimeActivate :: CActivate
 
-foreign import ccall "dynamic"
-    fromSenderFunPtr :: FunPtr CSender -> CSender
-
-foreign import ccall "wrapper"
-    toSenderFunPtr :: CSender -> IO (FunPtr CSender)
-
-foreign export ccall "haskLimeInit"
-    haskLimeInit :: CInitializer
-
-type CSender = CString -> IO ()
-
-type CInitializer = FunPtr CSender -> IO (FunPtr CSender)
-
-haskLimeInit :: CInitializer
-haskLimeInit =
-    initPlugin $
+-- | Activation function which will be called from Python.
+haskLimeActivate :: CActivate
+haskLimeActivate =
+    activatePlugin $ \ send ->
         Plugin
-            { pluginHandler    = \ _ _ -> pure ()
-            , pluginActivate   = \ _ -> pure ()
-            , pluginDeactivate = \ _ -> pure () }
-
-type Sender = ByteString.ByteString -> IO ()
-
-data Plugin =
-    Plugin
-        { pluginHandler    :: Sender -> ByteString.ByteString -> IO ()
-        , pluginActivate   :: Sender -> IO ()
-        , pluginDeactivate :: Sender -> IO () }
-
-initPlugin :: Plugin -> CInitializer
-initPlugin plugin ptrSend = do
-    toSenderFunPtr $ \ cStr -> do
-        str <- ByteString.packCString cStr
-        pluginHandler plugin send str
+            { pluginActivation   = send "Hello"
+            , pluginDeactivation = send "Bye"
+            , pluginMessage      = onMessage send
+            , pluginError        = onError send }
     where
-        sendCString = fromSenderFunPtr ptrSend
-        send msg    = ByteString.useAsCString msg sendCString
+        onMessage send message = send ("Message: " ++ message)
+
+        onError send error = send ("Error: " ++ error)
