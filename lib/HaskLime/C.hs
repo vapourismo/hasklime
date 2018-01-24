@@ -1,9 +1,14 @@
 module HaskLime.C (
+    CSender,
     CActivate,
+
+    Activate,
+
     activate
 ) where
 
 import           Control.Monad
+import           Control.Exception
 
 import qualified Data.ByteString as ByteString
 
@@ -23,7 +28,10 @@ type CSender = CString -> IO ()
 type CSenderPtr = FunPtr CSender
 
 -- | Activation function
-type CActivate = FunPtr CSender -> IO (FunPtr CSender)
+type CActivate = CSenderPtr -> IO CSenderPtr
+
+-- | Haskell activation function
+type Activate = (ByteString.ByteString -> IO ()) -> IO (ByteString.ByteString -> IO ())
 
 -- | Turn 'CSenderPtr' into a more Haskell-friendly function.
 fromSenderPtr :: CSenderPtr -> (ByteString.ByteString -> IO ())
@@ -40,6 +48,6 @@ toSenderPtr send =
 -- | Generate the activation function that will later be called from Python. The callback passed to
 -- 'activate' receives a function to send messages to Python and shall return a function that
 -- handles messages from Python.
-activate :: ((ByteString.ByteString -> IO ()) -> IO (ByteString.ByteString -> IO ())) -> CActivate
+activate :: Activate -> CActivate
 activate init ptrSend =
-    init (fromSenderPtr ptrSend) >>= toSenderPtr
+    evaluate (fromSenderPtr ptrSend) >>= init >>= toSenderPtr
