@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module HaskLime.C (
     CSender,
     CActivate,
@@ -38,7 +40,7 @@ fromSenderPtr :: CSenderPtr -> (ByteString.ByteString -> IO ())
 fromSenderPtr ptrSend message =
     ByteString.useAsCString message sendCString
     where
-        sendCString = fromSenderFunPtr ptrSend
+        !sendCString = fromSenderFunPtr ptrSend
 
 -- | Turn a Haskell-friendly function into a 'CSenderPtr'.
 toSenderPtr :: (ByteString.ByteString -> IO ()) -> IO CSenderPtr
