@@ -1,11 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
 
 module HaskLime.C (
-    CSender,
-    CActivate,
-
     Activate,
-
+    CActivate,
     activate
 ) where
 
