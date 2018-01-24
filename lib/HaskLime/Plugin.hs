@@ -3,7 +3,8 @@
 module HaskLime.Plugin (
     Sender,
     Plugin (..),
-    activatePlugin
+    activatePlugin,
+    CActivate
 ) where
 
 import           GHC.Generics

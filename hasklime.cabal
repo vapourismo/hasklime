@@ -13,8 +13,8 @@ library
   build-depends:    base, aeson, bytestring
   hs-source-dirs:   lib
   exposed-modules:  HaskLime.Plugin
-                    HaskLime.C
   other-modules:    HaskLime.Thread
+                    HaskLime.C
 
 foreign-library hasklime-example
   type:             native-shared

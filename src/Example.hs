@@ -1,6 +1,5 @@
 module Example (haskLimeActivate) where
 
-import HaskLime.C
 import HaskLime.Plugin
 
 foreign export ccall "haskLimeActivate"
