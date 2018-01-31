@@ -1,52 +1,72 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns         #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module HaskLime.C (
+    -- * Aliases for external interfaces
+    Sender,
+    SenderPtr,
     Activate,
-    CActivate,
-    activate
+
+    -- * Activation class
+    Activation (..),
+
+    -- * Aliases for haskell interfaces
+    HaskellSender,
+    HaskellActivate
 ) where
 
-import           Control.Monad
 import           Control.Exception
+import           Control.Monad
 
-import qualified Data.ByteString as ByteString
+import qualified Data.ByteString   as ByteString
 
 import           Foreign.C
 import           Foreign.Ptr
 
 foreign import ccall "dynamic"
-    fromSenderFunPtr :: CSenderPtr -> CSender
+    fromSenderFunPtr :: SenderPtr -> Sender
 
 foreign import ccall "wrapper"
-    toSenderFunPtr :: CSender -> IO CSenderPtr
+    toSenderFunPtr :: Sender -> IO SenderPtr
 
 -- | Sender function
-type CSender = CString -> IO ()
+type Sender = CString -> IO ()
 
--- | Pointer to 'CSender'
-type CSenderPtr = FunPtr CSender
+-- | Pointer to 'Sender'
+type SenderPtr = FunPtr Sender
 
 -- | Activation function
-type CActivate = CSenderPtr -> IO CSenderPtr
+type Activate = SenderPtr -> IO SenderPtr
 
--- | Haskell activation function
-type Activate = (ByteString.ByteString -> IO ()) -> IO (ByteString.ByteString -> IO ())
-
--- | Turn 'CSenderPtr' into a more Haskell-friendly function.
-fromSenderPtr :: CSenderPtr -> (ByteString.ByteString -> IO ())
+-- | Turn 'SenderPtr' into a more Haskell-friendly function.
+fromSenderPtr :: SenderPtr -> HaskellSender
 fromSenderPtr ptrSend message =
     ByteString.useAsCString message sendCString
     where
         !sendCString = fromSenderFunPtr ptrSend
 
--- | Turn a Haskell-friendly function into a 'CSenderPtr'.
-toSenderPtr :: (ByteString.ByteString -> IO ()) -> IO CSenderPtr
+-- | Turn a Haskell-friendly function into a 'SenderPtr'.
+toSenderPtr :: HaskellSender -> IO SenderPtr
 toSenderPtr send =
     toSenderFunPtr (ByteString.packCString >=> send)
 
--- | Generate the activation function that will later be called from Python. The callback passed to
--- 'activate' receives a function to send messages to Python and shall return a function that
--- handles messages from Python.
-activate :: Activate -> CActivate
-activate init ptrSend =
-    evaluate (fromSenderPtr ptrSend) >>= init >>= toSenderPtr
+-- | Something that can be activated from outside
+class Activation a where
+    -- | Generate the activation function.
+    toActivate :: a -> Activate
+
+instance Activation Activate where
+    toActivate = id
+
+-- | Haskell sender function
+type HaskellSender =  ByteString.ByteString -> IO ()
+
+-- | Haskell activation function
+type HaskellActivate = HaskellSender -> IO HaskellSender
+
+instance Activation HaskellActivate where
+    toActivate init ptrSend = do
+        sender <- evaluate (fromSenderPtr ptrSend)
+        receiver <- init sender
+        toSenderPtr receiver

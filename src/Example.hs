@@ -1,20 +1,25 @@
 module Example (haskLimeActivate) where
 
+import HaskLime.C
 import HaskLime.Plugin
 
 foreign export ccall "haskLimeActivate"
-    haskLimeActivate :: CActivate
+    haskLimeActivate :: Activate
 
 -- | Activation function which will be called from Python.
-haskLimeActivate :: CActivate
+haskLimeActivate :: Activate
 haskLimeActivate =
-    activatePlugin $ \ send ->
-        Plugin
-            { pluginActivation   = send "Hello"
-            , pluginDeactivation = send "Bye"
-            , pluginMessage      = onMessage send
-            , pluginError        = onError send }
-    where
-        onMessage send message = send ("Message: " ++ message)
+    toActivate examplePlugin
 
-        onError send error = send ("Error: " ++ error)
+-- | Example plugin
+examplePlugin :: Plugin String String
+examplePlugin =
+    Plugin
+        { pluginActivation   = send "Hello"
+        , pluginDeactivation = send "Bye"
+        , pluginMessage      = onMessage
+        , pluginError        = onError }
+    where
+        onMessage message = send ("Message: " ++ message)
+
+        onError error = send ("Error: " ++ error)
