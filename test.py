@@ -1,12 +1,17 @@
-from HaskLime import Plugin
+import ctypes
+import json
 
-class MyPlugin(Plugin):
-	def onMessage(self, message):
-		print(message)
+sharedLibrary = ctypes.CDLL('./hasklime-example.so')
 
-plugin = MyPlugin('./hasklime-example.so')
+def wrap(func):
+	test.argtypes = [ctypes.c_char_p]
+	test.restype = ctypes.c_char_p
 
-for _ in range(1000):
-	plugin.sendMessage('Test')
+	def wrapper(input)
 
-plugin.join()
+test = sharedLibrary.test
+test.argtypes = [ctypes.c_char_p]
+test.restype = ctypes.c_char_p
+
+result = json.loads(test(bytes(json.dumps([1, 2, 3]), 'utf8')))
+print(result)
