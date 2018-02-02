@@ -1,4 +1,5 @@
 module HaskLime.JSON (
+    JSON (..),
     fromJSON,
     toJSON
 ) where
@@ -14,20 +15,23 @@ import           Foreign.Marshal
 import           Foreign.Ptr
 import           Foreign.Storable
 
+-- | JSON-encoded strings
+newtype JSON a = JSON CString
+
 -- | Parse JSON contained within the given 'CString'.
-fromJSON :: FromJSON a => CString -> IO (Maybe a)
-fromJSON string
+fromJSON :: FromJSON a => JSON a -> IO (Maybe a)
+fromJSON (JSON string)
     | string == nullPtr = pure Nothing
     | otherwise         = decodeStrict' <$> ByteString.packCString string
 
 -- | Generate a 'CString' contains the JSON-representation of the given value. The 'CString' needs
 -- to be 'free'd manually.
-toJSON :: ToJSON a => a -> IO CString
+toJSON :: ToJSON a => a -> IO (JSON a)
 toJSON value =
     ByteString.unsafeUseAsCString strictValue $ \ string -> do
         copy <- mallocArray0 valueLength
         copyArray copy string valueLength
-        copy <$ pokeElemOff copy valueLength 0
+        JSON copy <$ pokeElemOff copy valueLength 0
     where
         strictValue =
             ByteStringLazy.toStrict (encode value)
