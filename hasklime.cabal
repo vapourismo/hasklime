@@ -12,9 +12,7 @@ library
   ghc-options:      -Wall -Wno-unused-do-bind -Wno-name-shadowing
   build-depends:    base, aeson, bytestring, transformers, data-default
   hs-source-dirs:   lib
-  exposed-modules:  HaskLime.Plugin
-                    HaskLime.C
-                    HaskLime.JSON
+  exposed-modules:  HaskLime.JSON
   other-modules:    HaskLime.Thread
 
 foreign-library hasklime-example
