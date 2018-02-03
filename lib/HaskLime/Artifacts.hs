@@ -2,21 +2,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module HaskLime.Artifacts (
+    -- * Activate
+    Activate,
+    toActivate,
+    toActivate',
+
+    -- * Method
     Method,
     toMethod,
     toMethod',
 
+    -- * Property
     Property,
     toProperty,
     toProperty',
 
+    -- * Function
     Function,
     toFunction,
-    toFunction',
-
-    Activate,
-    toActivate,
-    toActivate'
+    toFunction'
 ) where
 
 import           Control.Exception

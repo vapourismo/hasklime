@@ -1,7 +1,6 @@
 module Example where
 
-import HaskLime.Artifacts
-import HaskLime.JSON
+import HaskLime
 
 foreign export ccall "testActivate"
     testActivate :: Activate Int Int
@@ -26,3 +25,10 @@ foreign export ccall "testFunction"
 
 testFunction :: Function Int Int
 testFunction = toFunction (\ i -> pure (i * 2))
+
+foreign export ccall "testDelete"
+    testDelete :: Property Int ()
+
+testDelete :: Property Int ()
+testDelete =
+    toProperty' (\ e -> putStrLn ("Bye " ++ show e))

@@ -12,10 +12,10 @@ library
   ghc-options:      -Wall -Wno-unused-do-bind -Wno-name-shadowing
   build-depends:    base, aeson, bytestring, text, unordered-containers
   hs-source-dirs:   lib
-  exposed-modules:  HaskLime.JSON
-                    HaskLime.Artifacts
+  exposed-modules:  HaskLime
                     HaskLime.Exports
-  other-modules:    HaskLime.Thread
+  other-modules:    HaskLime.Artifacts
+                    HaskLime.JSON
 
 foreign-library hasklime-example
   type:             native-shared
@@ -24,5 +24,4 @@ foreign-library hasklime-example
   build-depends:    base, hasklime, unordered-containers, text, aeson
   hs-source-dirs:   src
   other-modules:    Example
-                    ImportantExports
   c-sources:        cbits/rts.c
