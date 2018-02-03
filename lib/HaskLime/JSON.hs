@@ -32,7 +32,7 @@ fromJSON (JSON string)
 -- | Generate a 'CString' contains the JSON-representation of the given value. The 'CString' needs
 -- to be 'free'd manually.
 toJSON :: ToJSON a => a -> IO (JSON a)
-toJSON value = do
+toJSON value =
     ByteString.unsafeUseAsCString strictValue $ \ string -> do
         copy <- mallocArray0 valueLength
         copyArray copy string valueLength

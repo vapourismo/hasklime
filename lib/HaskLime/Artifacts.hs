@@ -59,7 +59,7 @@ toActivate' activate _ = do
 type Method e i o = StablePtr e -> JSON i -> IO (JSON o)
 
 toMethod :: (FromJSON i, ToJSON o) => (e -> i -> IO o) -> Method e i o
-toMethod impl envPtr requestJson = do
+toMethod impl envPtr requestJson =
     fromJSON requestJson >>= \case
         Nothing ->
             wrapError "Failed to parse request"
@@ -69,7 +69,7 @@ toMethod impl envPtr requestJson = do
             catch (impl env request >>= toJSON) wrapException
 
 toMethod' :: FromJSON i => (e -> i -> IO ()) -> Method e i ()
-toMethod' impl envPtr requestJson = do
+toMethod' impl envPtr requestJson =
     fromJSON requestJson >>= \case
         Nothing ->
             wrapError "Failed to parse request"
@@ -93,7 +93,7 @@ toProperty' impl envPtr = do
 type Function i o = JSON i -> IO (JSON o)
 
 toFunction :: (FromJSON i, ToJSON o) => (i -> IO o) -> Function i o
-toFunction impl requestJson = do
+toFunction impl requestJson =
     fromJSON requestJson >>= \case
         Nothing ->
             wrapError "Failed to parse request"
@@ -102,7 +102,7 @@ toFunction impl requestJson = do
             catch (impl request >>= toJSON) wrapException
 
 toFunction' :: FromJSON i => (i -> IO ()) -> Function i ()
-toFunction' impl requestJson = do
+toFunction' impl requestJson =
     fromJSON requestJson >>= \case
         Nothing ->
             wrapError "Failed to parse request"
