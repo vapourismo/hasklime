@@ -1,45 +1,142 @@
 import ctypes
 import json
 
-# Correspondes to the Haskell type `FunPtr (CString -> IO ())`
-CSenderFunPtr = ctypes.CFUNCTYPE(None, ctypes.c_char_p)
+def getFreeResponse(library):
+	""" Extract the 'freeResponse' function from the given library. """
 
-class Plugin:
-	''' HaskLime plugin '''
+	freeResponse_ = library.freeResponse
+	freeResponse_.argtypes = [ctypes.c_void_p]
+	freeResponse_.restype = None
 
-	def __init__(self, path):
-		''' Activate the HasKLime plugin at the given path. '''
+	def freeResponse(ptr):
+		if ptr != 0 and ptr != None:
+			freeResponse_(ptr)
 
-		sharedLibrary = ctypes.CDLL(path)
+	return freeResponse
 
-		activatePlugin = sharedLibrary.haskLimeActivate
-		activatePlugin.argtypes = [CSenderFunPtr]
-		activatePlugin.restype = CSenderFunPtr
+def getFreeEnvironment(library):
+	""" Extract the 'freeEnvironment' function from the given library. """
 
-		self._ourHandler = CSenderFunPtr(self._onMessage)
-		self._theirSender = activatePlugin(self._ourHandler)
+	freeEnvironment_ = library.freeEnvironment
+	freeEnvironment_.argtypes = [ctypes.c_void_p]
+	freeEnvironment_.restype = None
 
-	def _onMessage(self, message):
-		self.onMessage(json.loads(message))
+	def freeEnvironment(ptr):
+		if ptr != 0 and ptr != None:
+			freeEnvironment_(ptr)
 
-	def onMessage(self, message):
-		''' Overwrite this method to handle message from the plugin. '''
+	return freeEnvironment
 
-		pass
+def makeRequest(value):
+	""" Turn the given value into a request parameter. """
 
-	def sendMessage(self, message):
-		''' Send a given message to the plugin. '''
+	return ctypes.c_char_p(bytes(json.dumps(value), 'utf8'))
 
-		self._theirSender(bytes(json.dumps({'tag': 'Message', 'messageContents': message}), 'utf8'))
+def parseResponse(ptr):
+	""" Extract the response value from the given response pointer. """
 
-	def kill(self):
-		''' Kill the HaskLime plugin.
-		    You can still send messages to the plugin after this methods returns. '''
+	if ptr == 0 or ptr == None:
+		return None
+	else:
+		return json.loads(ctypes.c_char_p(ptr).value)
 
-		self._theirSender(bytes(json.dumps({'tag': 'Kill'}), 'utf8'))
+def fromMethod(method, freeResponse):
+	""" Adjust the given C function to fit the 'Method' interface. """
 
-	def join(self):
-		''' Wait for the HaskLime plugin to terminate naturally.
-		    You can still send messages to the plugin after this method returns. '''
+	method.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+	method.restype = ctypes.c_void_p
 
-		self._theirSender(bytes(json.dumps({'tag': 'Join'}), 'utf8'))
+	def wrapper(state, request):
+		responsePtr = method(state.environment, makeRequest(request))
+		response = parseResponse(responsePtr)
+
+		freeResponse(responsePtr)
+
+		return response
+
+	return wrapper
+
+def fromProperty(property, freeResponse):
+	""" Adjust the given C function to fit the 'Property' interface. """
+
+	property.argtypes = [ctypes.c_void_p]
+	property.restype = ctypes.c_void_p
+
+	def wrapper(state):
+		responsePtr = property(state.environment)
+		response = parseResponse(responsePtr)
+
+		freeResponse(responsePtr)
+
+		return response
+
+	return wrapper
+
+def fromFunction(func, freeResponse):
+	""" Adjust the given C function to fit the 'Function' interface. """
+
+	func.argtypes = [ctypes.c_char_p]
+	func.restype = ctypes.c_void_p
+
+	def wrapper(request):
+		responsePtr = func(makeRequest(request))
+		response = parseResponse(responsePtr)
+
+		freeResponse(responsePtr)
+
+		return response
+
+	return wrapper
+
+class ActivationError(Exception):
+	""" An error that occurs during activation of a plugin. """
+
+	pass
+
+def fromActivate(activate, freeEnvironment):
+	""" Adjust the given C function to fit the 'Activate' interface. """
+
+	activate.argtypes = [ctypes.c_char_p]
+	activate.restype = ctypes.c_void_p
+
+	class Environment:
+		def __init__(self, request):
+			self.environment = activate(makeRequest(request))
+
+			if self.environment == 0 or self.environment == None:
+				raise ActivationError('Failed to activate')
+
+		def __del__(self):
+			freeEnvironment(self.environment)
+
+		def __str__(self):
+			return '<Environment @ StablePtr %s>' % self.environment
+
+	return Environment
+
+def createClass(path, activate, methods = [], properties = [], functions = []):
+	""" Create a class for the plugin contained within the given path. """
+
+	library         = ctypes.CDLL(path)
+	freeResponse    = getFreeResponse(library)
+	freeEnvironment = getFreeEnvironment(library)
+
+	Environment = fromActivate(getattr(library, activate), freeEnvironment)
+
+	class Plugin(Environment):
+		def __str__(self):
+			return '<Plugin %s @ StablePtr %s>' % (path, self.environment)
+
+	for name in methods:
+		method = fromMethod(getattr(library, name), freeResponse)
+		setattr(Plugin, name, method)
+
+	for name in properties:
+		property = fromProperty(getattr(library, name), freeResponse)
+		setattr(Plugin, name, property)
+
+	for name in functions:
+		function = fromFunction(getattr(library, name), freeResponse)
+		setattr(Plugin, name, function)
+
+	return Plugin
