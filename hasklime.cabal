@@ -10,16 +10,19 @@ cabal-version:      >= 2
 library
   default-language: Haskell2010
   ghc-options:      -Wall -Wno-unused-do-bind -Wno-name-shadowing
-  build-depends:    base, aeson, bytestring, transformers, data-default
+  build-depends:    base, aeson, bytestring, text, unordered-containers
   hs-source-dirs:   lib
   exposed-modules:  HaskLime.JSON
+                    HaskLime.Artifacts
+                    HaskLime.Exports
   other-modules:    HaskLime.Thread
 
 foreign-library hasklime-example
   type:             native-shared
   default-language: Haskell2010
   ghc-options:      -Wall -Wno-name-shadowing
-  build-depends:    base, hasklime
+  build-depends:    base, hasklime, unordered-containers, text, aeson
   hs-source-dirs:   src
   other-modules:    Example
+                    ImportantExports
   c-sources:        cbits/rts.c

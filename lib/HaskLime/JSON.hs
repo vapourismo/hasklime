@@ -1,7 +1,12 @@
 module HaskLime.JSON (
     JSON (..),
     fromJSON,
-    toJSON
+    toJSON,
+
+    castJSON,
+
+    FromJSON,
+    ToJSON
 ) where
 
 import           Data.Aeson             hiding (fromJSON, toJSON)
@@ -27,7 +32,7 @@ fromJSON (JSON string)
 -- | Generate a 'CString' contains the JSON-representation of the given value. The 'CString' needs
 -- to be 'free'd manually.
 toJSON :: ToJSON a => a -> IO (JSON a)
-toJSON value =
+toJSON value = do
     ByteString.unsafeUseAsCString strictValue $ \ string -> do
         copy <- mallocArray0 valueLength
         copyArray copy string valueLength
@@ -38,3 +43,7 @@ toJSON value =
 
         valueLength =
             ByteString.length strictValue
+
+-- | Cast JSON-encoded value.
+castJSON :: JSON a -> JSON b
+castJSON (JSON a) = JSON a

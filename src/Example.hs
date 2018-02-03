@@ -1,14 +1,28 @@
 module Example where
 
-import Foreign.C
+import HaskLime.Artifacts
 import HaskLime.JSON
 
-foreign export ccall "test"
-    test :: JSON [Int] -> IO (JSON [Int])
+foreign export ccall "testActivate"
+    testActivate :: Activate Int Int
 
-newtype Test = Test CInt
+testActivate :: Activate Int Int
+testActivate = toActivate pure
 
-test :: JSON [Int] -> IO (JSON [Int])
-test inputJson = do
-    mbInput <- fromJSON inputJson
-    toJSON (maybe [] (map (+ 2)) mbInput)
+foreign export ccall "testMethod"
+    testMethod :: Method Int Int Int
+
+testMethod :: Method Int Int Int
+testMethod = toMethod (\ e i -> pure (e + i))
+
+foreign export ccall "testProperty"
+    testProperty :: Property Int Int
+
+testProperty :: Property Int Int
+testProperty = toProperty pure
+
+foreign export ccall "testFunction"
+    testFunction :: Function Int Int
+
+testFunction :: Function Int Int
+testFunction = toFunction (\ i -> pure (i * 2))
