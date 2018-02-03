@@ -31,17 +31,21 @@ import           Foreign.StablePtr
 
 import           HaskLime.JSON
 
-wrapError :: Text.Text -> IO (JSON a)
-wrapError message =
+-- | Create a JSON object representing an error.
+mkErrorObject :: Text.Text -> IO (JSON a)
+mkErrorObject message =
     castJSON <$> toJSON (Aeson.Object (HashMap.singleton "error" (Aeson.toJSON message)))
 
-wrapException :: SomeException -> IO (JSON a)
-wrapException (SomeException e) =
-    wrapError (Text.pack (show e))
+-- | Create a JSON object representing an exception.
+mkExceptionObject :: SomeException -> IO (JSON a)
+mkExceptionObject (SomeException exception) =
+    mkErrorObject (Text.pack (show exception))
 
-type Activate e i = JSON i -> IO (StablePtr e)
+-- | Activation function that takes a request parameter @req@ and produces an environment @env@
+type Activate req env = JSON req -> IO (StablePtr env)
 
-toActivate :: FromJSON i => (i -> IO e) -> Activate e i
+-- | Convert to an activation function.
+toActivate :: FromJSON req => (req -> IO env) -> Activate req env
 toActivate activate requestJson =
     fromJSON requestJson >>= \case
         Nothing ->
@@ -51,61 +55,71 @@ toActivate activate requestJson =
             env <- activate request
             newStablePtr env
 
-toActivate' :: IO e -> Activate e Void
+-- | Convert to an activiation function that does not use its request parameter.
+toActivate' :: IO env -> Activate Void env
 toActivate' activate _ = do
     env <- activate
     newStablePtr env
 
-type Method e i o = StablePtr e -> JSON i -> IO (JSON o)
+-- | Function that takes an environment @env@, a parameter @req@ and produces an response @res@
+type Method env req res = StablePtr env -> JSON req -> IO (JSON res)
 
-toMethod :: (FromJSON i, ToJSON o) => (e -> i -> IO o) -> Method e i o
+-- | Convert to a method.
+toMethod :: (FromJSON req, ToJSON res) => (env -> req -> IO res) -> Method env req res
 toMethod impl envPtr requestJson =
     fromJSON requestJson >>= \case
         Nothing ->
-            wrapError "Failed to parse request"
+            mkErrorObject "Failed to parse request"
 
         Just request -> do
             env <- deRefStablePtr envPtr
-            catch (impl env request >>= toJSON) wrapException
+            catch (impl env request >>= toJSON) mkExceptionObject
 
-toMethod' :: FromJSON i => (e -> i -> IO ()) -> Method e i ()
+-- | Convert to a method that does not produce a response.
+toMethod' :: FromJSON req => (env -> req -> IO ()) -> Method env req ()
 toMethod' impl envPtr requestJson =
     fromJSON requestJson >>= \case
         Nothing ->
-            wrapError "Failed to parse request"
+            mkErrorObject "Failed to parse request"
 
         Just request -> do
             env <- deRefStablePtr envPtr
-            catch (JSON nullPtr <$ impl env request) wrapException
+            catch (JSON nullPtr <$ impl env request) mkExceptionObject
 
-type Property e o = StablePtr e -> IO (JSON o)
+-- | Function that takes an environment @res@ and gives a response @res@
+type Property env res = StablePtr env -> IO (JSON res)
 
-toProperty :: ToJSON o => (e -> IO o) -> Property e o
+-- | Convert to a property.
+toProperty :: ToJSON res => (env -> IO res) -> Property env res
 toProperty impl envPtr = do
     env <- deRefStablePtr envPtr
-    catch (impl env >>= toJSON) wrapException
+    catch (impl env >>= toJSON) mkExceptionObject
 
-toProperty' :: (e -> IO ()) -> Property e ()
+-- | Convert to a property that does not produce a response.
+toProperty' :: (env -> IO ()) -> Property env ()
 toProperty' impl envPtr = do
     env <- deRefStablePtr envPtr
-    catch (JSON nullPtr <$ impl env) wrapException
+    catch (JSON nullPtr <$ impl env) mkExceptionObject
 
-type Function i o = JSON i -> IO (JSON o)
+-- | Function takes a parameter @req@ and produces a response @res@
+type Function req res = JSON req -> IO (JSON res)
 
-toFunction :: (FromJSON i, ToJSON o) => (i -> IO o) -> Function i o
+-- | Convert to a function.
+toFunction :: (FromJSON req, ToJSON res) => (req -> IO res) -> Function req res
 toFunction impl requestJson =
     fromJSON requestJson >>= \case
         Nothing ->
-            wrapError "Failed to parse request"
+            mkErrorObject "Failed to parse request"
 
         Just request ->
-            catch (impl request >>= toJSON) wrapException
+            catch (impl request >>= toJSON) mkExceptionObject
 
-toFunction' :: FromJSON i => (i -> IO ()) -> Function i ()
+-- | Convert to a function that does not produce a response.
+toFunction' :: FromJSON req => (req -> IO ()) -> Function req ()
 toFunction' impl requestJson =
     fromJSON requestJson >>= \case
         Nothing ->
-            wrapError "Failed to parse request"
+            mkErrorObject "Failed to parse request"
 
         Just request ->
-            catch (JSON nullPtr <$ impl request) wrapException
+            catch (JSON nullPtr <$ impl request) mkExceptionObject
