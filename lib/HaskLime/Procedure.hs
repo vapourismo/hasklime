@@ -4,9 +4,7 @@
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs                  #-}
-{-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
@@ -56,7 +54,7 @@ class IsProcedure f ps r | ps r -> f, f -> ps r where
     fromProcedure :: Procedure ps r -> f
 
 instance IsProcedure (IO r) '[] r where
-    toProcedure ret = pure ret
+    toProcedure = pure
 
     fromProcedure cont = cont Nil
 
