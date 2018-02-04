@@ -1,28 +1,16 @@
 module HaskLime (
-    -- * Activate
-    Activate,
-    toActivate,
-    toActivate',
+    -- * Exports
+    export_,
+    exportAs,
 
-    -- * Method
-    Method,
-    toMethod,
-    toMethod',
+    -- * Interface
+    Interface (..),
 
-    -- * Property
-    Property,
-    toProperty,
-    toProperty',
-
-    -- * Function
-    Function,
-    toFunction,
-    toFunction',
-
-    -- * Helpers
-    JSON (..)
+    -- * Interface types
+    JSON (..),
+    Ref (..),
 ) where
 
-import HaskLime.Artifacts
 import HaskLime.Exports   ()
-import HaskLime.JSON
+import HaskLime.Interface
+import HaskLime.TH

@@ -1,37 +1,9 @@
-{-# LANGUAGE RankNTypes #-}
+module HaskLime.Exports (free, freeStablePtr) where
 
-module HaskLime.Exports (
-    -- * Responses
-    FreeResponse,
-    freeResponse,
+import Foreign
 
-    -- * Environments
-    FreeEnvironment,
-    freeEnvironment,
-) where
+foreign export ccall "freePtr"
+    free :: Ptr a -> IO ()
 
-import Foreign.Marshal
-import Foreign.Ptr
-import Foreign.StablePtr
-
--- | Helper for freeing responses
-type FreeResponse = forall a. Ptr a -> IO ()
-
--- Do not remove!
-foreign export ccall "freeResponse"
-    freeResponse :: FreeResponse
-
--- | Helper for freeing responses
-freeResponse :: FreeResponse
-freeResponse = free
-
--- | Helper for freeing environments
-type FreeEnvironment = forall a. StablePtr a -> IO ()
-
--- Do not remove!
-foreign export ccall "freeEnvironment"
-    freeEnvironment :: FreeEnvironment
-
--- | Helper for freeing environments
-freeEnvironment :: FreeEnvironment
-freeEnvironment = freeStablePtr
+foreign export ccall "freeStablePtr"
+    freeStablePtr :: StablePtr a -> IO ()
