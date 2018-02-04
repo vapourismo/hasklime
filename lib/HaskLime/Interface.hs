@@ -11,7 +11,9 @@ module HaskLime.Interface (
     Ref (..)
 ) where
 
+import Foreign.C
 import Foreign.StablePtr
+
 import HaskLime.JSON
 
 -- | A type which can be convert to and from something C-like.
@@ -33,11 +35,11 @@ instance Interface () where
 newtype JSON a = JSON {fromJSON :: a}
 
 instance (ToJSON a, FromJSON a) => Interface (JSON a) where
-    type CType (JSON a) = CJSON a
+    type CType (JSON a) = CString
 
-    fromC json = maybe (error "Failed to parse") JSON <$> fromCJSON json
+    fromC json = maybe (error "Failed to parse") JSON <$> fromCJSON (CJSON json)
 
-    toC (JSON value) = toCJSON value
+    toC (JSON value) = (\ (CJSON cstr) -> cstr) <$> toCJSON value
 
 -- | Transportered as stable pointer
 newtype Ref a = Ref {deRef :: a}

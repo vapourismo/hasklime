@@ -5,7 +5,15 @@ module Example where
 import HaskLime.Interface
 import HaskLime.TH
 
-testDelete :: Ref Int -> IO ()
-testDelete (Ref e) = putStrLn ("Bye " ++ show e)
+create :: JSON Int -> IO (Ref Int)
+create (JSON x) = pure (Ref x)
 
-$(export_ 'testDelete)
+dump :: Ref Int -> IO (JSON Int)
+dump (Ref x) = pure (JSON x)
+
+increment :: Ref Int -> IO (Ref Int)
+increment (Ref x) = pure (Ref (x + 1))
+
+$(export_ 'create)
+$(export_ 'dump)
+$(export_ 'increment)
