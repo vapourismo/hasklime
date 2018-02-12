@@ -1,5 +1,6 @@
 import ctypes
 import json
+import threading
 
 FreeFunPtr = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 
@@ -94,12 +95,24 @@ create = library.wrap('create', Ref, JSON)
 dump = library.wrap('dump', JSON, Ref)
 increment = library.wrap('increment', Ref, Ref)
 
-for i in range(10000):
-	x = create(i)
+threads = []
 
-	for j in range(10000):
-		x = increment(x)
+for i in range(32):
+	def wrapper():
+		x = create(i)
 
-	x = dump(x)
-	if x != i + 10000:
-		print(i, x)
+		for j in range(10000):
+			x = increment(x)
+
+		x = dump(x)
+		if x != i + 10000:
+			print(i, x)
+
+		print(x)
+
+	t = threading.Thread(target = wrapper)
+	t.start()
+	threads.append(t)
+
+for i in range(32):
+	threads.pop().join()
