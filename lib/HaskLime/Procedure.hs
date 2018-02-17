@@ -13,7 +13,7 @@ module HaskLime.Procedure (
     IsProcedure,
     IsExportable,
     ExportProcedure,
-    exportProcedure
+    toExportProcedure
 ) where
 
 import Control.Applicative
@@ -83,5 +83,5 @@ type IsExportable f ps r =
     , IsProcedure (ExportProcedure f) (CTypes ps) (CType r) )
 
 -- | Turn a given procedure into one that can be exported.
-exportProcedure :: (IsProcedure f ps r, IsExportable f ps r) => f -> ExportProcedure f
-exportProcedure = fromProcedure . toCProcedure . toProcedure
+toExportProcedure :: (IsProcedure f ps r, IsExportable f ps r) => f -> ExportProcedure f
+toExportProcedure = fromProcedure . toCProcedure . toProcedure

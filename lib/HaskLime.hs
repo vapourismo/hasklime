@@ -1,6 +1,6 @@
 module HaskLime (
     -- * Exports
-    export_,
+    export,
     exportAs,
 
     -- * Interface

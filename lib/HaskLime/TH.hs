@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module HaskLime.TH (export_, exportAs) where
+module HaskLime.TH (export, exportAs) where
 
 import Language.Haskell.TH
 
@@ -20,11 +20,11 @@ defineExportWrapper name typ = do
             SigD wrapperName wrapperType
 
         wrapperImplementation wrapperName =
-            ValD (VarP wrapperName) (NormalB (AppE (VarE 'exportProcedure) (VarE name))) []
+            ValD (VarP wrapperName) (NormalB (AppE (VarE 'toExportProcedure) (VarE name))) []
 
 -- | Export the given name.
-export_ :: Name -> Q [Dec]
-export_ name = exportAs name (nameBase name)
+export :: Name -> Q [Dec]
+export name = exportAs name (nameBase name)
 
 -- | Export the given name using the given alias.
 exportAs :: Name -> String -> Q [Dec]
