@@ -1,142 +1,202 @@
 import ctypes
 import json
+import threading
 
-def getFreeResponse(library):
-	""" Extract the 'freeResponse' function from the given library. """
+FreeFunPtr = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 
-	freeResponse_ = library.freeResponse
-	freeResponse_.argtypes = [ctypes.c_void_p]
-	freeResponse_.restype = None
+class JSON:
+	""" JSON-encoded string """
 
-	def freeResponse(ptr):
-		if ptr != 0 and ptr != None:
-			freeResponse_(ptr)
+	unpackType = ctypes.c_void_p
+	packType   = ctypes.c_char_p
 
-	return freeResponse
+	def unpack(library, ptr):
+		if ptr == 0 or ptr == None:
+			return None
 
-def getFreeEnvironment(library):
-	""" Extract the 'freeEnvironment' function from the given library. """
+		string = ctypes.c_char_p(ptr).value
+		value = json.loads(string)
 
-	freeEnvironment_ = library.freeEnvironment
-	freeEnvironment_.argtypes = [ctypes.c_void_p]
-	freeEnvironment_.restype = None
+		library.freePtr(ptr)
+		return value
 
-	def freeEnvironment(ptr):
-		if ptr != 0 and ptr != None:
-			freeEnvironment_(ptr)
+	def pack(_, value):
+		return ctypes.c_char_p(bytes(json.dumps(value), 'utf8'))
 
-	return freeEnvironment
+class StablePtr:
+	""" Stable pointer """
 
-def makeRequest(value):
-	""" Turn the given value into a request parameter. """
+	unpackType = ctypes.c_void_p
+	packType   = ctypes.c_void_p
 
-	return ctypes.c_char_p(bytes(json.dumps(value), 'utf8'))
+	def unpack(library, ptr):
+		return StablePtr(library, ptr)
 
-def parseResponse(ptr):
-	""" Extract the response value from the given response pointer. """
+	def pack(library, ref):
+		return ref.ptr
 
-	if ptr == 0 or ptr == None:
-		return None
-	else:
-		return json.loads(ctypes.c_char_p(ptr).value)
+	def __init__(self, library, ptr):
+		self.library = library
+		self.ptr = ptr
 
-def fromMethod(method, freeResponse):
-	""" Adjust the given C function to fit the 'Method' interface. """
+	def __str__(self):
+		return '<StablePtr %s from %s>' % (self.ptr, self.library)
 
-	method.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
-	method.restype = ctypes.c_void_p
+	def __del__(self):
+		self.library.freeStablePtr(self.ptr)
 
-	def wrapper(state, request):
-		responsePtr = method(state.environment, makeRequest(request))
-		response = parseResponse(responsePtr)
+def wrapFunction(library, fun, returnClass = None, *paramClasses):
+	""" Wrap the given function to make it easily usable. """
 
-		freeResponse(responsePtr)
+	returnType = None
+	numParams  = len(paramClasses)
+	paramTypes = list(paramClasses)
 
-		return response
+	for i in range(numParams):
+		paramTypes[i] = paramClasses[i].packType
 
-	return wrapper
+	if returnClass != None:
+		returnType = returnClass.unpackType
 
-def fromProperty(property, freeResponse):
-	""" Adjust the given C function to fit the 'Property' interface. """
+	fun.argtypes = paramTypes
+	fun.restype = returnType
 
-	property.argtypes = [ctypes.c_void_p]
-	property.restype = ctypes.c_void_p
+	def wrapper(*inputParams):
+		if len(inputParams) != numParams:
+			raise Exception('Invalid number of parameters')
 
-	def wrapper(state):
-		responsePtr = property(state.environment)
-		response = parseResponse(responsePtr)
+		params = list(inputParams)
 
-		freeResponse(responsePtr)
+		for i in range(numParams):
+			params[i] = paramClasses[i].pack(library, inputParams[i])
 
-		return response
+		value = fun(*params)
 
-	return wrapper
-
-def fromFunction(func, freeResponse):
-	""" Adjust the given C function to fit the 'Function' interface. """
-
-	func.argtypes = [ctypes.c_char_p]
-	func.restype = ctypes.c_void_p
-
-	def wrapper(request):
-		responsePtr = func(makeRequest(request))
-		response = parseResponse(responsePtr)
-
-		freeResponse(responsePtr)
-
-		return response
+		return returnClass.unpack(library, value)
 
 	return wrapper
 
-class ActivationError(Exception):
-	""" An error that occurs during activation of a plugin. """
+class Library:
+	""" Haskell library """
 
-	pass
+	def __init__(self, path):
+		""" Load the library at the given path. """
 
-def fromActivate(activate, freeEnvironment):
-	""" Adjust the given C function to fit the 'Activate' interface. """
+		self.path = path
+		self.library = ctypes.CDLL(path)
 
-	activate.argtypes = [ctypes.c_char_p]
-	activate.restype = ctypes.c_void_p
+		self.freePtr = self.library.freePtr
+		self.freePtr.argtypes = [ctypes.c_void_p]
+		self.freePtr.restype = None
 
-	class Environment:
-		def __init__(self, request):
-			self.environment = activate(makeRequest(request))
+		self.freeStablePtr = self.library.freeStablePtr
+		self.freeStablePtr.argtypes = [ctypes.c_void_p]
+		self.freeStablePtr.restype = None
 
-			if self.environment == 0 or self.environment == None:
-				raise ActivationError('Failed to activate')
+	def wrap(self, name, ret = None, *params):
+		""" Wrap a function with the given name.  """
+		return wrapFunction(self, getattr(self.library, name), ret, *params)
 
-		def __del__(self):
-			freeEnvironment(self.environment)
+	def __str__(self):
+		return '<Library %s>' % self.library
+import ctypes
+import json
+import threading
 
-		def __str__(self):
-			return '<Environment @ StablePtr %s>' % self.environment
+FreeFunPtr = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 
-	return Environment
+class JSON:
+	""" JSON-encoded string """
 
-def createClass(path, activate, methods = [], properties = [], functions = []):
-	""" Create a class for the plugin contained within the given path. """
+	unpackType = ctypes.c_void_p
+	packType   = ctypes.c_char_p
 
-	library         = ctypes.CDLL(path)
-	freeResponse    = getFreeResponse(library)
-	freeEnvironment = getFreeEnvironment(library)
+	def unpack(library, ptr):
+		if ptr == 0 or ptr == None:
+			return None
 
-	Environment = fromActivate(getattr(library, activate), freeEnvironment)
+		string = ctypes.c_char_p(ptr).value
+		value = json.loads(string)
 
-	class Plugin(Environment):
-		def __str__(self):
-			return '<Plugin %s @ StablePtr %s>' % (path, self.environment)
+		library.freePtr(ptr)
+		return value
 
-	for name in methods:
-		method = fromMethod(getattr(library, name), freeResponse)
-		setattr(Plugin, name, method)
+	def pack(_, value):
+		return ctypes.c_char_p(bytes(json.dumps(value), 'utf8'))
 
-	for name in properties:
-		property = fromProperty(getattr(library, name), freeResponse)
-		setattr(Plugin, name, property)
+class StablePtr:
+	""" Stable pointer """
 
-	for name in functions:
-		function = fromFunction(getattr(library, name), freeResponse)
-		setattr(Plugin, name, function)
+	unpackType = ctypes.c_void_p
+	packType   = ctypes.c_void_p
 
-	return Plugin
+	def unpack(library, ptr):
+		return StablePtr(library, ptr)
+
+	def pack(library, ref):
+		return ref.ptr
+
+	def __init__(self, library, ptr):
+		self.library = library
+		self.ptr = ptr
+
+	def __str__(self):
+		return '<StablePtr %s from %s>' % (self.ptr, self.library)
+
+	def __del__(self):
+		self.library.freeStablePtr(self.ptr)
+
+def wrapFunction(library, fun, returnClass = None, *paramClasses):
+	""" Wrap the given function to make it easily usable. """
+
+	returnType = None
+	numParams  = len(paramClasses)
+	paramTypes = list(paramClasses)
+
+	for i in range(numParams):
+		paramTypes[i] = paramClasses[i].packType
+
+	if returnClass != None:
+		returnType = returnClass.unpackType
+
+	fun.argtypes = paramTypes
+	fun.restype = returnType
+
+	def wrapper(*inputParams):
+		if len(inputParams) != numParams:
+			raise Exception('Invalid number of parameters')
+
+		params = list(inputParams)
+
+		for i in range(numParams):
+			params[i] = paramClasses[i].pack(library, inputParams[i])
+
+		value = fun(*params)
+
+		return returnClass.unpack(library, value)
+
+	return wrapper
+
+class Library:
+	""" Haskell library """
+
+	def __init__(self, path):
+		""" Load the library at the given path. """
+
+		self.path = path
+		self.library = ctypes.CDLL(path)
+
+		self.freePtr = self.library.freePtr
+		self.freePtr.argtypes = [ctypes.c_void_p]
+		self.freePtr.restype = None
+
+		self.freeStablePtr = self.library.freeStablePtr
+		self.freeStablePtr.argtypes = [ctypes.c_void_p]
+		self.freeStablePtr.restype = None
+
+	def wrap(self, name, ret = None, *params):
+		""" Wrap a function with the given name.  """
+		return wrapFunction(self, getattr(self.library, name), ret, *params)
+
+	def __str__(self):
+		return '<Library %s>' % self.library
