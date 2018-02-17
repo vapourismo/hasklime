@@ -97,22 +97,25 @@ increment = library.wrap('increment', Ref, Ref)
 
 threads = []
 
-for i in range(32):
-	def wrapper():
-		x = create(i)
+class T(threading.Thread):
+	def __init__(self, i):
+		threading.Thread.__init__(self)
+		self.i = i
+
+	def run(self):
+		x = create(self.i)
 
 		for j in range(10000):
 			x = increment(x)
 
 		x = dump(x)
-		if x != i + 10000:
-			print(i, x)
+		if x != self.i + 10000:
+			print(self.i, x)
 
-		print(x)
-
-	t = threading.Thread(target = wrapper)
+for i in range(32):
+	t = T(i)
 	t.start()
 	threads.append(t)
 
-for i in range(32):
-	threads.pop().join()
+for t in threads:
+	t.join()
