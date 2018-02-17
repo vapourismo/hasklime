@@ -2,8 +2,7 @@
 
 module Example where
 
-import HaskLime.Interface
-import HaskLime.TH
+import HaskLime
 
 create :: JSON Int -> IO (Ref Int)
 create (JSON x) = pure (Ref x)
