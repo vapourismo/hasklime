@@ -17,7 +17,6 @@ library
                     HaskLime.Interface
                     HaskLime.TH
                     HaskLime.Procedure
-                    HaskLime.JSON
 
 foreign-library hasklime-example
   type:             native-shared
