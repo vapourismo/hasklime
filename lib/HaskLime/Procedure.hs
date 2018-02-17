@@ -41,8 +41,12 @@ class FromCInputs ts where
 instance FromCInputs '[] where
     fromCInputs Nil = pure Nil
 
+    {-# INLINE fromCInputs #-}
+
 instance (Interface t, FromCInputs ts) => FromCInputs (t : ts) where
     fromCInputs (Cons x xs) = liftA2 Cons (fromC x) (fromCInputs xs)
+
+    {-# INLINE fromCInputs #-}
 
 -- | A procedure function that takes all its parameters as 'Inputs'
 type Procedure ts r = Inputs ts -> IO r
@@ -56,12 +60,20 @@ class IsProcedure f ps r | ps r -> f, f -> ps r where
 instance IsProcedure (IO r) '[] r where
     toProcedure = pure
 
+    {-# INLINE toProcedure #-}
+
     fromProcedure cont = cont Nil
+
+    {-# INLINE fromProcedure #-}
 
 instance IsProcedure b ps r => IsProcedure (a -> b) (a : ps) r where
     toProcedure fun (Cons input inputs) = toProcedure (fun input) inputs
 
+    {-# INLINE toProcedure #-}
+
     fromProcedure cont input = fromProcedure (cont . Cons input)
+
+    {-# INLINE fromProcedure #-}
 
 -- | Instance of 'Procedure' that takes the corresponding 'CType's as parameters and produces a
 -- matching 'CType' as output.
@@ -71,12 +83,14 @@ type CProcedure ps r = Procedure (CTypes ps) (CType r)
 toCProcedure :: (FromCInputs ps, Interface r) => Procedure ps r -> CProcedure ps r
 toCProcedure cont = fromCInputs >=> cont >=> toC
 
+{-# INLINE toCProcedure #-}
+
 -- | Compute the type of the exported function for a given procedure type.
 type family ExportProcedure f where
     ExportProcedure (IO r)   = IO (CType r)
     ExportProcedure (a -> b) = CType a -> ExportProcedure b
 
--- |
+-- | Is @f@ exportable?
 type IsExportable f ps r =
     ( FromCInputs ps
     , Interface r
@@ -85,3 +99,5 @@ type IsExportable f ps r =
 -- | Turn a given procedure into one that can be exported.
 toExportProcedure :: (IsProcedure f ps r, IsExportable f ps r) => f -> ExportProcedure f
 toExportProcedure = fromProcedure . toCProcedure . toProcedure
+
+{-# INLINE toExportProcedure #-}

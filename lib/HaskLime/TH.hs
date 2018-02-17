@@ -30,8 +30,8 @@ export name = exportAs name (nameBase name)
 exportAs :: Name -> String -> Q [Dec]
 exportAs name alias =
     reify name >>= \case
-        VarI name typ _ -> do
-            (sig, impl, wName, wType) <- defineExportWrapper name typ
-            pure [sig, impl, ForeignD (ExportF CCall alias wName wType)]
-
-        _ -> fail "Given name does not refer to a variable"
+        VarI name typ _ -> mkDecls <$> defineExportWrapper name typ
+        _               -> fail "Given name does not refer to a variable"
+    where
+        mkDecls (sig, impl, wrapperName, wrapperType) =
+            [sig, impl, ForeignD (ExportF CCall alias wrapperName wrapperType)]
