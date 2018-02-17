@@ -21,7 +21,7 @@ library
 foreign-library hasklime-example
   type:             native-shared
   default-language: Haskell2010
-  ghc-options:      -Wall -Wno-name-shadowing -ddump-splices -threaded
+  ghc-options:      -Wall -Wno-name-shadowing -threaded
   extra-libraries:  HSrts_thr-ghc8.2.2
   build-depends:    base, hasklime, unordered-containers, text, aeson
   hs-source-dirs:   src
