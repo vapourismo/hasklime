@@ -23,14 +23,14 @@ class JSON:
 	def pack(_, value):
 		return ctypes.c_char_p(bytes(json.dumps(value), 'utf8'))
 
-class StablePtr:
+class Ref:
 	""" Stable pointer """
 
 	unpackType = ctypes.c_void_p
 	packType   = ctypes.c_void_p
 
 	def unpack(library, ptr):
-		return StablePtr(library, ptr)
+		return Ref(library, ptr)
 
 	def pack(library, ref):
 		return ref.ptr
@@ -40,7 +40,7 @@ class StablePtr:
 		self.ptr = ptr
 
 	def __str__(self):
-		return '<StablePtr %s from %s>' % (self.ptr, self.library)
+		return '<Ref %s from %s>' % (self.ptr, self.library)
 
 	def __del__(self):
 		self.library.freeStablePtr(self.ptr)

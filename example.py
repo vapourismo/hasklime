@@ -1,11 +1,11 @@
 import threading
-from HaskLime import Library, StablePtr, JSON
+from HaskLime import Library, Ref, JSON
 
 library = Library('./hasklime-example.so')
 
-create = library.wrap('create', StablePtr, JSON)
-dump = library.wrap('dump', JSON, StablePtr)
-increment = library.wrap('increment', StablePtr, StablePtr)
+create = library.wrap('create', Ref, JSON)
+dump = library.wrap('dump', JSON, Ref)
+increment = library.wrap('increment', Ref, Ref)
 
 threads = []
 
