@@ -1,1 +1,2 @@
-packages: hasklime.cabal
+packages:          hasklime.cabal
+optional-packages: example/example.cabal
