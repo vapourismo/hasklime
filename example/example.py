@@ -1,5 +1,8 @@
+import sys
+sys.path.append('..')
+
 import threading
-from HaskLime import Library, Ref, JSON
+from hasklime import Library, Ref, JSON
 
 library = Library('./hasklime-example.so')
 
@@ -24,7 +27,7 @@ class T(threading.Thread):
 		if x != self.i + 1000:
 			print(self.i, x)
 
-for i in range(32):
+for i in range(1000):
 	t = T(i)
 	t.start()
 	threads.append(t)
