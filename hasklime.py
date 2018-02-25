@@ -4,6 +4,53 @@ import threading
 
 FreeFunPtr = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 
+def makeTrivialType(clazz):
+	class Trivial:
+		unpackType = clazz
+		packType = clazz
+
+		def unpack(_, value):
+			return value
+
+		def pack(_, value):
+			return clazz(value)
+
+	return Trivial
+
+Bool    = makeTrivialType(ctypes.c_bool)
+CBool   = Bool
+CChar   = makeTrivialType(ctypes.c_byte)
+CUChar  = makeTrivialType(ctypes.c_ubyte)
+CShort  = makeTrivialType(ctypes.c_short)
+CUShort = makeTrivialType(ctypes.c_ushort)
+CInt    = makeTrivialType(ctypes.c_int)
+CUInt   = makeTrivialType(ctypes.c_uint)
+CLong   = makeTrivialType(ctypes.c_long)
+CULong  = makeTrivialType(ctypes.c_ulong)
+CLLong  = makeTrivialType(ctypes.c_longlong)
+CULLong = makeTrivialType(ctypes.c_ulonglong)
+CSize   = makeTrivialType(ctypes.c_size_t)
+CFloat  = makeTrivialType(ctypes.c_float)
+CDouble = makeTrivialType(ctypes.c_double)
+
+class ByteString:
+	""" Bytes """
+
+	unpackType = ctypes.c_void_p
+	packType   = ctypes.c_char_p
+
+	def unpack(library, ptr):
+		if ptr == 0 or ptr == None:
+			return b''
+
+		value = ctypes.c_char_p(ptr).value
+
+		library.freePtr(ptr)
+		return value
+
+	def pack(_, value):
+		return ctypes.c_char_p(value)
+
 class JSON:
 	""" JSON-encoded string """
 

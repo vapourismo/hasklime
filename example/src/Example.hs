@@ -2,17 +2,15 @@
 
 module Example where
 
-import HaskLime
+import qualified Data.ByteString as ByteString
 
-create :: JSON Int -> IO (Ref Int)
-create (JSON x) = pure (Ref x)
+import           HaskLime
 
-dump :: Ref Int -> IO (JSON Int)
-dump (Ref x) = pure (JSON x)
+f :: Bool -> IO Bool
+f = pure . not
 
-increment :: Ref Int -> IO (Ref Int)
-increment (Ref x) = pure (Ref (x + 1))
+g :: ByteString.ByteString -> IO ByteString.ByteString
+g = pure . ByteString.reverse
 
-$(export 'create)
-$(export 'dump)
-$(export 'increment)
+$(export 'f)
+$(export 'g)

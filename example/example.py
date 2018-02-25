@@ -2,35 +2,12 @@ import sys
 sys.path.append('..')
 
 import threading
-from hasklime import Library, Ref, JSON
+from hasklime import *
 
 library = Library('./hasklime-example.so')
 
-create = library.wrap('create', Ref, JSON)
-dump = library.wrap('dump', JSON, Ref)
-increment = library.wrap('increment', Ref, Ref)
+f = library.wrap('f', Bool, Bool)
+g = library.wrap('g', ByteString, ByteString)
 
-threads = []
-
-class T(threading.Thread):
-	def __init__(self, i):
-		threading.Thread.__init__(self)
-		self.i = i
-
-	def run(self):
-		x = create(self.i)
-
-		for j in range(1000):
-			x = increment(x)
-
-		x = dump(x)
-		if x != self.i + 1000:
-			print(self.i, x)
-
-for i in range(1000):
-	t = T(i)
-	t.start()
-	threads.append(t)
-
-for t in threads:
-	t.join()
+print(g(b'True'))
+print(g(b'False'))

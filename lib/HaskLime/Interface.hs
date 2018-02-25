@@ -39,26 +39,6 @@ class Interface a where
     toC = pure
 
 instance Interface () where
-    type CType () = ()
-
-    fromC = pure
-
-    toC = pure
-
-instance Interface ByteString.ByteString where
-    type CType ByteString.ByteString = CString
-
-    fromC string
-        | string == nullPtr = pure ByteString.empty
-        | otherwise         = ByteString.packCString string
-
-    toC value =
-        ByteString.unsafeUseAsCString value $ \ string -> do
-            copy <- mallocArray0 valueLength
-            copyArray copy string valueLength
-            copy <$ pokeElemOff copy valueLength 0
-        where
-            valueLength = ByteString.length value
 
 instance Interface (Ptr a)
 
@@ -117,6 +97,23 @@ instance Interface CUSeconds
 instance Interface CUShort
 
 instance Interface CWchar
+
+instance Interface Bool
+
+instance Interface ByteString.ByteString where
+    type CType ByteString.ByteString = CString
+
+    fromC string
+        | string == nullPtr = pure ByteString.empty
+        | otherwise         = ByteString.packCString string
+
+    toC value =
+        ByteString.unsafeUseAsCString value $ \ string -> do
+            copy <- mallocArray0 valueLength
+            copyArray copy string valueLength
+            copy <$ pokeElemOff copy valueLength 0
+        where
+            valueLength = ByteString.length value
 
 -- | Transported as JSON-encoded C string
 newtype JSON a = JSON {fromJSON :: a}
